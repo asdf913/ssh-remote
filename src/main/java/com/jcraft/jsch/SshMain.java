@@ -36,6 +36,8 @@ import io.github.toolfactory.narcissus.Narcissus;
 
 public class SshMain {
 
+	private static String VALUE = "value";
+
 	public static void main(final String[] args) throws Exception {
 		//
 		final Map<String, String> map = toMap(args);
@@ -181,7 +183,7 @@ public class SshMain {
 			try {
 				//
 				if ((s = ArrayUtils.get(ss, i)) != null
-						&& Narcissus.getField(s, Narcissus.findField(getClass(s), "value")) == null) {
+						&& Narcissus.getField(s, Narcissus.findField(getClass(s), VALUE)) == null) {
 					//
 					continue;
 					//
@@ -275,8 +277,7 @@ public class SshMain {
 			//
 		try {
 			//
-			if (command != null
-					&& Narcissus.getField(command, Narcissus.findField(getClass(command), "value")) == null) {
+			if (command != null && Narcissus.getField(command, Narcissus.findField(getClass(command), VALUE)) == null) {
 				//
 				return;
 				//
@@ -474,7 +475,7 @@ public class SshMain {
 			//
 		try {
 			//
-			if (Narcissus.getField(instance, Narcissus.findField(getClass(instance), "value")) == null) {
+			if (Narcissus.getField(instance, Narcissus.findField(getClass(instance), VALUE)) == null) {
 				//
 				return null;
 				//
