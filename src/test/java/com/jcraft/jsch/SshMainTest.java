@@ -32,8 +32,8 @@ import io.github.toolfactory.narcissus.Narcissus;
 
 public class SshMainTest {
 
-	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST,
-			METHOD_GET_SESSION = null;
+	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
+			METHOD_TO_HOST_AND_PORT = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -52,6 +52,9 @@ public class SshMainTest {
 		(METHOD_CAST = clz.getDeclaredMethod("cast", Class.class, Object.class)).setAccessible(true);
 		//
 		(METHOD_GET_SESSION = clz.getDeclaredMethod("getSession", JSch.class, HostAndPort.class, String.class))
+				.setAccessible(true);
+		//
+		(METHOD_TO_HOST_AND_PORT = clz.getDeclaredMethod("toHostAndPort", String.class, Integer.class))
 				.setAccessible(true);
 		//
 	}
@@ -291,8 +294,11 @@ public class SshMainTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { Session.class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getInputStream"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Channel.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "getSession"), Arrays.equals(parameterTypes,
-							new Class<?>[] { JSch.class, HostAndPort.class, String.class }))) {
+					|| Boolean.logicalAnd(Objects.equals(name, "getSession"),
+							Arrays.equals(parameterTypes,
+									new Class<?>[] { JSch.class, HostAndPort.class, String.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "toHostAndPort"),
+							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Integer.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -394,6 +400,13 @@ public class SshMainTest {
 		Assert.assertNull(invoke(METHOD_GET_SESSION, null, jSch, Narcissus.allocateInstance(HostAndPort.class), null));
 		//
 		Assert.assertNotNull(invoke(METHOD_GET_SESSION, null, jSch, HostAndPort.fromHost(""), null));
+		//
+	}
+
+	@Test
+	public void testToHostAndPort() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertNotNull(invoke(METHOD_TO_HOST_AND_PORT, null, "", Integer.valueOf(1)));
 		//
 	}
 

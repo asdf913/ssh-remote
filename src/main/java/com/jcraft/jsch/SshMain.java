@@ -57,12 +57,8 @@ public class SshMain {
 			//
 			user = map.get("user");
 			//
-			final String host = map.get("host");
-			//
-			final Integer port = testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null);
-			//
-			hostAndPort = port != null ? HostAndPort.fromParts(host, port.intValue())
-					: host != null ? HostAndPort.fromHost(host) : null;
+			hostAndPort = toHostAndPort(map.get("host"),
+					testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null));
 			//
 			password = getBytes(map.get("password"));
 			//
@@ -86,13 +82,8 @@ public class SshMain {
 			//
 			user = getString(iniConfiguration, "user");
 			//
-			final String host = getString(iniConfiguration, "host");
-			//
-			final Integer port = testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"),
-					Integer::valueOf, null);
-			//
-			hostAndPort = port != null ? HostAndPort.fromParts(host, port.intValue())
-					: host != null ? HostAndPort.fromHost(host) : null;
+			hostAndPort = toHostAndPort(getString(iniConfiguration, "host"),
+					testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null));
 			//
 			password = getBytes(getString(iniConfiguration, "password"));
 			//
@@ -174,6 +165,33 @@ public class SshMain {
 			//
 		} // try
 			//
+	}
+
+	private static HostAndPort toHostAndPort(final String host, final Integer port) {
+		//
+		if (port != null) {
+			//
+			try {
+				//
+				if (and(host, Objects::nonNull,
+						x -> Narcissus.getField(x, Narcissus.findField(getClass(x), VALUE)) == null)) {
+					//
+					return null;
+					//
+				} // if
+					//
+			} catch (final NoSuchFieldException e) {
+				//
+				throw new RuntimeException(e);
+				//
+			} // try
+				//
+			return HostAndPort.fromParts(host, port.intValue());
+			//
+		} // if
+			//
+		return testAndApply(Objects::nonNull, host, HostAndPort::fromHost, null);
+		//
 	}
 
 	private static <E> void add(final Collection<E> instance, final E item) {
