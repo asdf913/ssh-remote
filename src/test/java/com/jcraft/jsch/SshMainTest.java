@@ -10,13 +10,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.function.FailableFunction;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
@@ -51,7 +52,7 @@ public class SshMainTest {
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean test;
+		private Boolean test, add;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -64,7 +65,7 @@ public class SshMainTest {
 				//
 			} // if
 				//
-			if (proxy instanceof Function && Objects.equals(name, "apply")) {
+			if (proxy instanceof FailableFunction && Objects.equals(name, "apply")) {
 				//
 				return null;
 				//
@@ -77,16 +78,24 @@ public class SshMainTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof Collection && Objects.equals(name, "add")) {
+				//
+				return add;
+				//
+			} else if (proxy instanceof Map && Objects.equals(name, "put")) {
+				//
+				return null;
+				//
 			} // if
 				//
 			throw new Throwable(name);
 			//
 		}
 
-		private static boolean contains(final Collection<?> instance, final Object item) {
-			return instance != null && instance.contains(item);
-		}
+	}
 
+	private static boolean contains(final Collection<?> instance, final Object item) {
+		return instance != null && instance.contains(item);
 	}
 
 	private static Class<?> getReturnType(final Method instance) {
@@ -146,7 +155,7 @@ public class SshMainTest {
 			//
 			toString = Objects.toString(m);
 			//
-			if (Objects.equals(getReturnType(m), Boolean.TYPE)) {
+			if (contains(Arrays.asList(Boolean.TYPE, Integer.TYPE), getReturnType(m))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -190,7 +199,9 @@ public class SshMainTest {
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
 			if ((m = ArrayUtils.get(ms, i)) == null || m.isSynthetic()
-					|| (parameterTypes = m.getParameterTypes()) == null) {
+					|| (parameterTypes = m.getParameterTypes()) == null
+					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "toMap"),
+							Arrays.equals(parameterTypes, new Class<?>[] { String[].class }))) {
 				//
 				continue;
 				//
@@ -254,13 +265,14 @@ public class SshMainTest {
 			toString = Objects.toString(m);
 			//
 			if (Objects.equals(getReturnType(m), Void.TYPE)
-					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "getBytes"),
+					|| Boolean.logicalAnd(Objects.equals(name, "getBytes"),
 							Arrays.equals(parameterTypes, new Class<?>[] { String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "apply"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Function.class, Object.class }))
+							Arrays.equals(parameterTypes, new Class<?>[] { FailableFunction.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "testAndApply"),
 							Arrays.equals(parameterTypes,
-									new Class<?>[] { Predicate.class, Object.class, Function.class, Function.class }))
+									new Class<?>[] { Predicate.class, Object.class, FailableFunction.class,
+											FailableFunction.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getKeys"),
 							Arrays.equals(parameterTypes, new Class<?>[] { ImmutableConfiguration.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getString"),
@@ -341,11 +353,27 @@ public class SshMainTest {
 	}
 
 	@Test
-	public void testCast() throws IllegalAccessException, InvocationTargetException {
+	public void testCast() throws Throwable {
 		//
 		final Object object = new Object();
 		//
-		Assert.assertSame(invoke(METHOD_CAST, null, Object.class, object), object);
+		Assert.assertSame(cast(Object.class, object), object);
+		//
+	}
+
+	private static <T> T cast(final Class<T> clz, final Object instance) throws Throwable {
+		try {
+			return (T) invoke(METHOD_CAST, null, clz, instance);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	@Test
+	public void testMain() throws Throwable {
+		//
+		SshMain.main(new String[] { "=", " =", "= ", "==", "a=b", "== ",
+				cast(String.class, Narcissus.allocateInstance(String.class)) });
 		//
 	}
 

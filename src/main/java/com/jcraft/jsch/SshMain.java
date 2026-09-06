@@ -6,13 +6,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.apache.commons.collections4.IterableUtils;
@@ -21,7 +25,10 @@ import org.apache.commons.configuration2.INIConfiguration;
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.configuration2.SubnodeConfiguration;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -31,66 +38,107 @@ public class SshMain {
 
 	public static void main(final String[] args) throws Exception {
 		//
-		Session session = null;
+		final Map<String, String> map = toMap(args);
 		//
-		ChannelExec channel = null;
+		String user, host = null;
 		//
-		final INIConfiguration iniConfiguration = new INIConfiguration();
+		Integer port = null;
 		//
-		final File file = new File("config.ini");
+		byte[] password = null;
 		//
-		testAndRun(and(file, SshMain::exists, SshMain::isFile, SshMain::canRead), () -> {
+		Iterable<String> commands = null;
+		//
+		if (map != null && !map.isEmpty()) {
 			//
-			try (final Reader reader = new FileReader(file)) {
+			user = map.get("user");
+			//
+			host = map.get("host");
+			//
+			port = testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null);
+			//
+			password = getBytes(map.get("password"));
+			//
+			commands = Collections.singleton(map.get("command"));
+			//
+		} else {
+			//
+			final INIConfiguration iniConfiguration = new INIConfiguration();
+			//
+			final File file = new File("config.ini");
+			//
+			testAndRun(and(file, SshMain::exists, SshMain::isFile, SshMain::canRead), () -> {
 				//
-				iniConfiguration.read(reader);
-				//
-			} // try
-				//
-		});
-		//
-		try {
+				try (final Reader reader = new FileReader(file)) {
+					//
+					iniConfiguration.read(reader);
+					//
+				} // try
+					//
+			});
 			//
-			final String user = getString(iniConfiguration, "user");
+			user = getString(iniConfiguration, "user");
 			//
-			final String host = getString(iniConfiguration, "host");
+			host = getString(iniConfiguration, "host");
 			//
-			final Integer port = testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"),
-					Integer::valueOf, null);
+			port = testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null);
 			//
-			setPassword(session = getSession(new JSch(), host, port, user),
-					getBytes(getString(iniConfiguration, "password")));
-			//
-			final Properties config = new Properties();
-			//
-			config.put("StrictHostKeyChecking", "no");
-			//
-			setConfig(session, config);
-			//
-			connect(session);
+			password = getBytes(getString(iniConfiguration, "password"));
 			//
 			final SubnodeConfiguration subnodeConfiguration = iniConfiguration.getSection("command");
 			//
 			final List<String> keys = testAndApply(Objects::nonNull, getKeys(subnodeConfiguration),
 					IteratorUtils::toList, null);
 			//
-			sort(keys, (a, b) -> {
-				//
-				if (Boolean.logicalAnd(NumberUtils.isDigits(a), NumberUtils.isDigits(b))) {
-					//
-					return Integer.compare(NumberUtils.toInt(a), NumberUtils.toInt(b));
-					//
-				} // if
-					//
-				return ObjectUtils.compare(a, b);
-				//
-			});
-			//
-			String string = null;
+			Collection<String> collection = null;
 			//
 			for (int i = 0; i < IterableUtils.size(keys); i++) {
 				//
-				System.out.println(string = getString(subnodeConfiguration, IterableUtils.get(keys, i)));
+				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
+						getString(subnodeConfiguration, IterableUtils.get(keys, i)));
+				//
+			} // for
+				//
+			commands = collection;
+			//
+		} // if
+			//
+		sort(cast(List.class, commands), (a, b) -> {
+			//
+			final String sa = Objects.toString(a);
+			//
+			final String sb = Objects.toString(b);
+			//
+			if (Boolean.logicalAnd(NumberUtils.isDigits(sa), NumberUtils.isDigits(sb))) {
+				//
+				return Integer.compare(NumberUtils.toInt(sa), NumberUtils.toInt(sb));
+				//
+			} // if
+				//
+			return ObjectUtils.compare(sa, sb);
+			//
+		});
+		//
+		Session session = null;
+		//
+		try {
+			//
+			setPassword(session = getSession(new JSch(), host, port, user), password);
+			//
+			final Properties config = new Properties();
+			//
+			put(config, "StrictHostKeyChecking", "no");
+			//
+			setConfig(session, config);
+			//
+			connect(session);
+			//
+			String string = null;
+			//
+			ChannelExec channel = null;
+			//
+			for (int i = 0; i < IterableUtils.size(commands); i++) {
+				//
+				System.out.println(string = IterableUtils.get(commands, i));
 				//
 				try (final InputStream is = getInputStream(
 						channel = cast(ChannelExec.class, openChannel(session, "exec")))) {
@@ -99,7 +147,8 @@ public class SshMain {
 					//
 					connect(channel);
 					//
-					System.out.println(IOUtils.toString(is, StandardCharsets.UTF_8));
+					System.out.println(
+							testAndApply(Objects::nonNull, is, x -> IOUtils.toString(x, StandardCharsets.UTF_8), null));
 					//
 					disconnect(channel);
 					//
@@ -113,6 +162,75 @@ public class SshMain {
 			//
 		} // try
 			//
+	}
+
+	private static <E> void add(final Collection<E> instance, final E item) {
+		if (instance != null) {
+			instance.add(item);
+		}
+	}
+
+	private static Map<String, String> toMap(final String... ss) {
+		//
+		String s = null;
+		//
+		Map<String, String> map = null;
+		//
+		for (int i = 0; i < length(ss); i++) {
+			//
+			try {
+				//
+				if ((s = ArrayUtils.get(ss, i)) != null
+						&& Narcissus.getField(s, Narcissus.findField(getClass(s), "value")) == null) {
+					//
+					continue;
+					//
+				} // if
+					//
+			} catch (final NoSuchFieldException e) {
+				//
+				throw new RuntimeException(e);
+				//
+			} // try
+				//
+			if (Objects.equals(s, "=")) {
+				//
+				put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), "", "");
+				//
+			} else if (s != null && s.length() == 2 && s.charAt(0) == '=') {
+				//
+				put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), "", s.substring(1, s.length()));
+				//
+			} else if (s != null && s.length() == 2 && s.charAt(s.length() - 1) == '=') {
+				//
+				put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), s.substring(0, s.length() - 1), "");
+				//
+			} else if (s != null && s.indexOf('=') >= 0 && s.indexOf('=') == s.lastIndexOf('=')) {
+				//
+				put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), StringUtils.substringBefore(s, '='),
+						StringUtils.substringAfter(s, '='));
+				//
+			} else if (s != null && s.length() > 2 && s.indexOf('=') != s.lastIndexOf('=')) {
+				//
+				put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), StringUtils.substring(s, 0, s.indexOf('=')),
+						StringUtils.substring(s, s.indexOf('=') + 1));
+				//
+			} // if
+				//
+		} // for
+			//
+		return map;
+		//
+	}
+
+	private static int length(final Object[] instance) {
+		return instance != null ? instance.length : 0;
+	}
+
+	private static <K, V> void put(final Map<K, V> instance, final K key, final V value) {
+		if (instance != null) {
+			instance.put(key, value);
+		}
 	}
 
 	private static void disconnect(final Channel instance) {
@@ -376,12 +494,13 @@ public class SshMain {
 		return instance != null ? instance.getClass() : null;
 	}
 
-	private static <T, R> R testAndApply(final Predicate<T> predicate, final T value, final Function<T, R> functionTrue,
-			final Function<T, R> functionFalse) {
+	private static <T, R, E extends Exception> R testAndApply(final Predicate<T> predicate, final T value,
+			final FailableFunction<T, R, E> functionTrue, final FailableFunction<T, R, E> functionFalse) throws E {
 		return test(predicate, value) ? apply(functionTrue, value) : apply(functionFalse, value);
 	}
 
-	private static <T, R> R apply(final Function<T, R> instance, final T value) {
+	private static <T, R, E extends Exception> R apply(final FailableFunction<T, R, E> instance, final T value)
+			throws E {
 		return instance != null ? instance.apply(value) : null;
 	}
 
