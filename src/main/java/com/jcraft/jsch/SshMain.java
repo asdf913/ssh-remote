@@ -5,6 +5,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +36,7 @@ import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import com.google.common.net.HostAndPort;
+import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
 
@@ -50,6 +53,35 @@ public class SshMain {
 		private byte[] password = null;
 
 		private Iterable<String> commands = null;
+
+	}
+
+	private static class IH implements InvocationHandler {
+
+		@Override
+		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+			//
+			final String name = method != null ? method.getName() : null;
+			//
+			if (proxy instanceof Comparator && Objects.equals(name, "compare") && args != null && args.length > 1) {
+				//
+				final String sa = Objects.toString(ArrayUtils.get(args, 0));
+				//
+				final String sb = Objects.toString(ArrayUtils.get(args, 1));
+				//
+				if (Boolean.logicalAnd(NumberUtils.isDigits(sa), NumberUtils.isDigits(sb))) {
+					//
+					return Integer.valueOf(Integer.compare(NumberUtils.toInt(sa), NumberUtils.toInt(sb)));
+					//
+				} // if
+					//
+				return Integer.valueOf(ObjectUtils.compare(sa, sb));
+				//
+			} // if
+				//
+			throw new Throwable(name);
+			//
+		}
 
 	}
 
@@ -114,22 +146,13 @@ public class SshMain {
 				//
 		} // if
 			//
-		sort(cast(List.class, commands), (a, b) -> {
+		if (commands instanceof List) {
 			//
-			final String sa = Objects.toString(a);
+			Narcissus.invokeMethod(commands, List.class.getDeclaredMethod("sort", Comparator.class),
+					Reflection.newProxy(Comparator.class, new IH()));
 			//
-			final String sb = Objects.toString(b);
+		} // if
 			//
-			if (Boolean.logicalAnd(NumberUtils.isDigits(sa), NumberUtils.isDigits(sb))) {
-				//
-				return Integer.compare(NumberUtils.toInt(sa), NumberUtils.toInt(sb));
-				//
-			} // if
-				//
-			return ObjectUtils.compare(sa, sb);
-			//
-		});
-		//
 		Session session = null;
 		//
 		try {
@@ -425,12 +448,6 @@ public class SshMain {
 			throws E {
 		if (condition && runnable != null) {
 			runnable.run();
-		}
-	}
-
-	private static <E> void sort(final List<E> instance, final Comparator<? super E> c) {
-		if (instance != null) {
-			instance.sort(c);
 		}
 	}
 

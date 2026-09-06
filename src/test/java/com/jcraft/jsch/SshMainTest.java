@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -421,6 +422,37 @@ public class SshMainTest {
 		//
 		Assert.assertNotNull(invoke(METHOD_TO_CONFIG, null, new File("pom.xml")));
 		//
+	}
+
+	@Test
+	public void testIH() throws Throwable {
+		//
+		final InvocationHandler invocationHandler = cast(InvocationHandler.class,
+				Narcissus.allocateInstance(Class.forName("com.jcraft.jsch.SshMain$IH")));
+		//
+		if (invocationHandler != null) {
+			//
+			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(null, null, null));
+			//
+			final Comparator<?> comparator = Reflection.newProxy(Comparator.class, invocationHandler);
+			//
+			final int zero = 0;
+			//
+			Assert.assertEquals(comparator != null ? comparator.compare(null, null) : null, Integer.valueOf(zero));
+			//
+			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, null, null));
+			//
+			final Method method = Comparator.class.getDeclaredMethod("compare", Object.class, Object.class);
+			//
+			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, method, null));
+			//
+			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, method, new Object[] {}));
+			//
+			Assert.assertEquals(invocationHandler.invoke(comparator, method,
+					new Object[] { Integer.valueOf(zero), Integer.valueOf(zero) }), Integer.valueOf(zero));
+			//
+		} // if
+			//
 	}
 
 }
