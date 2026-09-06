@@ -67,15 +67,35 @@ public class SshMain {
 		//
 		if (map != null && !map.isEmpty()) {
 			//
-			user = map.get("user");
-			//
-			hostAndPort = toHostAndPort(map.get("host"),
-					testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null));
-			//
-			password = getBytes(map.get("password"));
-			//
-			commands = Collections.singleton(map.get("command"));
-			//
+			if (map.containsKey("file")) {
+				//
+				final Config config = toConfig(new File(map.get("file")));
+				//
+				if (config != null) {
+					//
+					user = config.user;
+					//
+					hostAndPort = config.hostAndPort;
+					//
+					password = config.password;
+					//
+					commands = config.commands;
+					//
+				} // if
+					//
+			} else {
+				//
+				user = map.get("user");
+				//
+				hostAndPort = toHostAndPort(map.get("host"),
+						testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null));
+				//
+				password = getBytes(map.get("password"));
+				//
+				commands = Collections.singleton(map.get("command"));
+				//
+			} // if
+				//
 		} else {
 			//
 			final Config config = toConfig(new File("config.ini"));

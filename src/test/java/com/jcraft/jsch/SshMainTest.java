@@ -394,6 +394,8 @@ public class SshMainTest {
 		SshMain.main(new String[] { "=", " =", "= ", "==", "a=b", "== ",
 				cast(String.class, Narcissus.allocateInstance(String.class)) });
 		//
+		SshMain.main(new String[] { "file=pom.xml" });
+		//
 	}
 
 	@Test
