@@ -33,6 +33,8 @@ import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
 
+import com.google.common.net.HostAndPort;
+
 import io.github.toolfactory.narcissus.Narcissus;
 
 public class SshMain {
@@ -43,9 +45,9 @@ public class SshMain {
 		//
 		final Map<String, String> map = toMap(args);
 		//
-		String user, host = null;
+		String user = null;
 		//
-		Integer port = null;
+		HostAndPort hostAndPort = null;
 		//
 		byte[] password = null;
 		//
@@ -55,9 +57,12 @@ public class SshMain {
 			//
 			user = map.get("user");
 			//
-			host = map.get("host");
+			final String host = map.get("host");
 			//
-			port = testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null);
+			final Integer port = testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null);
+			//
+			hostAndPort = port != null ? HostAndPort.fromParts(host, port.intValue())
+					: host != null ? HostAndPort.fromHost(host) : null;
 			//
 			password = getBytes(map.get("password"));
 			//
@@ -81,9 +86,13 @@ public class SshMain {
 			//
 			user = getString(iniConfiguration, "user");
 			//
-			host = getString(iniConfiguration, "host");
+			final String host = getString(iniConfiguration, "host");
 			//
-			port = testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null);
+			final Integer port = testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"),
+					Integer::valueOf, null);
+			//
+			hostAndPort = port != null ? HostAndPort.fromParts(host, port.intValue())
+					: host != null ? HostAndPort.fromHost(host) : null;
 			//
 			password = getBytes(getString(iniConfiguration, "password"));
 			//
@@ -125,7 +134,10 @@ public class SshMain {
 		//
 		try {
 			//
-			setPassword(session = getSession(new JSch(), host, port, user), password);
+			setPassword(
+					session = getSession(new JSch(), hostAndPort != null ? hostAndPort.getHost() : null,
+							hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : null, user),
+					password);
 			//
 			final Properties config = new Properties();
 			//

@@ -36,6 +36,12 @@
 			<artifactId>narcissus</artifactId>
 			<version>1.0.11</version>
 		</dependency>
+		<!--https://mvnrepository.com/artifact/com.google.guava/guava -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>33.7.1-jre</version>
+		</dependency>
 		<!--https://mvnrepository.com/artifact/org.apache.sshd/sshd-core -->
 		<dependency>
 			<groupId>org.apache.sshd</groupId>
@@ -48,13 +54,6 @@
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
 			<version>7.5.1</version>
-			<scope>test</scope>
-		</dependency>
-		<!--https://mvnrepository.com/artifact/com.google.guava/guava -->
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>33.7.1-jre</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
