@@ -147,8 +147,8 @@ public class SshMain {
 					//
 					connect(channel);
 					//
-					System.out.println(
-							testAndApply(Objects::nonNull, is, x -> IOUtils.toString(x, StandardCharsets.UTF_8), null));
+					System.out.println(cast(String.class, testAndApply(Objects::nonNull, is,
+							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
 					//
 					disconnect(channel);
 					//
