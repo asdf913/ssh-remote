@@ -34,6 +34,8 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
@@ -41,6 +43,8 @@ import com.google.common.reflect.Reflection;
 import io.github.toolfactory.narcissus.Narcissus;
 
 public class SshMain {
+
+	private static final Logger LOG = LoggerFactory.getLogger(SshMain.class);
 
 	private static String VALUE = "value";
 
@@ -173,7 +177,7 @@ public class SshMain {
 			//
 			for (int i = 0; i < IterableUtils.size(commands); i++) {
 				//
-				System.out.println(string = IterableUtils.get(commands, i));
+				info(LOG, string = IterableUtils.get(commands, i));
 				//
 				try (final InputStream is = getInputStream(
 						channel = cast(ChannelExec.class, openChannel(session, "exec")))) {
@@ -182,7 +186,7 @@ public class SshMain {
 					//
 					connect(channel);
 					//
-					System.out.println(cast(String.class, testAndApply(Objects::nonNull, is,
+					info(LOG, cast(String.class, testAndApply(Objects::nonNull, is,
 							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
 					//
 					disconnect(channel);
@@ -197,6 +201,12 @@ public class SshMain {
 			//
 		} // try
 			//
+	}
+
+	private static void info(final Logger instance, final String msg) {
+		if (instance != null) {
+			instance.info(msg);
+		}
 	}
 
 	private static Config toConfig(final File file) throws Exception {
