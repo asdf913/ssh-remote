@@ -25,13 +25,15 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import com.google.common.base.Predicates;
+import com.google.common.net.HostAndPort;
 import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
 
 public class SshMainTest {
 
-	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST = null;
+	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST,
+			METHOD_GET_SESSION = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -48,6 +50,9 @@ public class SshMainTest {
 				.setAccessible(true);
 		//
 		(METHOD_CAST = clz.getDeclaredMethod("cast", Class.class, Object.class)).setAccessible(true);
+		//
+		(METHOD_GET_SESSION = clz.getDeclaredMethod("getSession", JSch.class, HostAndPort.class, String.class))
+				.setAccessible(true);
 		//
 	}
 
@@ -285,7 +290,9 @@ public class SshMainTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "openChannel"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Session.class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getInputStream"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Channel.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { Channel.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getSession"), Arrays.equals(parameterTypes,
+							new Class<?>[] { JSch.class, HostAndPort.class, String.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -376,6 +383,17 @@ public class SshMainTest {
 		//
 		SshMain.main(new String[] { "=", " =", "= ", "==", "a=b", "== ",
 				cast(String.class, Narcissus.allocateInstance(String.class)) });
+		//
+	}
+
+	@Test
+	public void testGetSession() throws IllegalAccessException, InvocationTargetException {
+		//
+		final JSch jSch = new JSch();
+		//
+		Assert.assertNull(invoke(METHOD_GET_SESSION, null, jSch, Narcissus.allocateInstance(HostAndPort.class), null));
+		//
+		Assert.assertNotNull(invoke(METHOD_GET_SESSION, null, jSch, HostAndPort.fromHost(""), null));
 		//
 	}
 

@@ -134,10 +134,7 @@ public class SshMain {
 		//
 		try {
 			//
-			setPassword(
-					session = getSession(new JSch(), hostAndPort != null ? hostAndPort.getHost() : null,
-							hostAndPort != null && hostAndPort.hasPort() ? hostAndPort.getPort() : null, user),
-					password);
+			setPassword(session = getSession(new JSch(), hostAndPort, user), password);
 			//
 			final Properties config = new Properties();
 			//
@@ -471,20 +468,29 @@ public class SshMain {
 		return instance != null && instance.test(value);
 	}
 
-	private static Session getSession(final JSch instance, final String host, final Integer port, final String user)
+	private static Session getSession(final JSch instance, final HostAndPort hostAndPort, final String user)
 			throws JSchException {
 		//
 		if (instance == null) {
 			//
 			return null;
 			//
-		} else if (port != null) {
+		} else if (hostAndPort != null) {
 			//
-			return instance.getSession(user, host, port.intValue());
+			final String host = hostAndPort.getHost();
+			//
+			if (hostAndPort.hasPort()) {
+				//
+				return testAndApply(Objects::nonNull, host, x -> instance.getSession(user, x, hostAndPort.getPort()),
+						null);
+				//
+			} // if
+				//
+			return instance.getSession(user, host);
 			//
 		} // if
 			//
-		return host != null ? instance.getSession(user, host) : null;
+		return null;
 		//
 	}
 
