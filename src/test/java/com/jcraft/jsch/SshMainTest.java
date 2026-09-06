@@ -33,7 +33,7 @@ import io.github.toolfactory.narcissus.Narcissus;
 public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
-			METHOD_TO_HOST_AND_PORT = null;
+			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -56,6 +56,8 @@ public class SshMainTest {
 		//
 		(METHOD_TO_HOST_AND_PORT = clz.getDeclaredMethod("toHostAndPort", String.class, Integer.class))
 				.setAccessible(true);
+		//
+		(METHOD_TO_CONFIG = clz.getDeclaredMethod("toConfig", File.class)).setAccessible(true);
 		//
 	}
 
@@ -165,7 +167,9 @@ public class SshMainTest {
 			//
 			toString = Objects.toString(m);
 			//
-			if (contains(Arrays.asList(Boolean.TYPE, Integer.TYPE), getReturnType(m))) {
+			if (contains(Arrays.asList(Boolean.TYPE, Integer.TYPE), getReturnType(m))
+					|| Boolean.logicalAnd(Objects.equals(getName(m), "toConfig"),
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -407,6 +411,13 @@ public class SshMainTest {
 	public void testToHostAndPort() throws IllegalAccessException, InvocationTargetException {
 		//
 		Assert.assertNotNull(invoke(METHOD_TO_HOST_AND_PORT, null, "", Integer.valueOf(1)));
+		//
+	}
+
+	@Test
+	public void testToConfig() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertNotNull(invoke(METHOD_TO_CONFIG, null, new File("pom.xml")));
 		//
 	}
 

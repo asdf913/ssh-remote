@@ -41,6 +41,18 @@ public class SshMain {
 
 	private static String VALUE = "value";
 
+	private static class Config {
+
+		private String user = null;
+
+		private HostAndPort hostAndPort = null;
+
+		private byte[] password = null;
+
+		private Iterable<String> commands = null;
+
+	}
+
 	public static void main(final String[] args) throws Exception {
 		//
 		final Map<String, String> map = toMap(args);
@@ -66,43 +78,20 @@ public class SshMain {
 			//
 		} else {
 			//
-			final INIConfiguration iniConfiguration = new INIConfiguration();
+			final Config config = toConfig(new File("config.ini"));
 			//
-			final File file = new File("config.ini");
-			//
-			testAndRun(and(file, SshMain::exists, SshMain::isFile, SshMain::canRead), () -> {
+			if (config != null) {
 				//
-				try (final Reader reader = new FileReader(file)) {
-					//
-					iniConfiguration.read(reader);
-					//
-				} // try
-					//
-			});
-			//
-			user = getString(iniConfiguration, "user");
-			//
-			hostAndPort = toHostAndPort(getString(iniConfiguration, "host"),
-					testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null));
-			//
-			password = getBytes(getString(iniConfiguration, "password"));
-			//
-			final SubnodeConfiguration subnodeConfiguration = iniConfiguration.getSection("command");
-			//
-			final List<String> keys = testAndApply(Objects::nonNull, getKeys(subnodeConfiguration),
-					IteratorUtils::toList, null);
-			//
-			Collection<String> collection = null;
-			//
-			for (int i = 0; i < IterableUtils.size(keys); i++) {
+				user = config.user;
 				//
-				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
-						getString(subnodeConfiguration, IterableUtils.get(keys, i)));
+				hostAndPort = config.hostAndPort;
 				//
-			} // for
+				password = config.password;
 				//
-			commands = collection;
-			//
+				commands = config.commands;
+				//
+			} // if
+				//
 		} // if
 			//
 		sort(cast(List.class, commands), (a, b) -> {
@@ -165,6 +154,49 @@ public class SshMain {
 			//
 		} // try
 			//
+	}
+
+	private static Config toConfig(final File file) throws Exception {
+		//
+		final INIConfiguration iniConfiguration = new INIConfiguration();
+		//
+		testAndRun(and(file, SshMain::exists, SshMain::isFile, SshMain::canRead), () -> {
+			//
+			try (final Reader reader = new FileReader(file)) {
+				//
+				iniConfiguration.read(reader);
+				//
+			} // try
+				//
+		});
+		//
+		final Config config = new Config();
+		//
+		config.user = getString(iniConfiguration, "user");
+		//
+		config.hostAndPort = toHostAndPort(getString(iniConfiguration, "host"),
+				testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null));
+		//
+		config.password = getBytes(getString(iniConfiguration, "password"));
+		//
+		final SubnodeConfiguration subnodeConfiguration = iniConfiguration.getSection("command");
+		//
+		final List<String> keys = testAndApply(Objects::nonNull, getKeys(subnodeConfiguration), IteratorUtils::toList,
+				null);
+		//
+		Collection<String> collection = null;
+		//
+		for (int i = 0; i < IterableUtils.size(keys); i++) {
+			//
+			add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
+					getString(subnodeConfiguration, IterableUtils.get(keys, i)));
+			//
+		} // for
+			//
+		config.commands = collection;
+		//
+		return config;
+		//
 	}
 
 	private static HostAndPort toHostAndPort(final String host, final Integer port) {
