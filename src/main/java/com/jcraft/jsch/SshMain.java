@@ -115,7 +115,7 @@ public class SshMain {
 			//
 	}
 
-	private static void disconnect(final Channel instance) throws JSchException {
+	private static void disconnect(final Channel instance) {
 		if (instance != null) {
 			instance.disconnect();
 		}
