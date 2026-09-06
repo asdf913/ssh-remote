@@ -29,6 +29,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.function.FailableFunction;
+import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
 
@@ -182,8 +183,8 @@ public class SshMain {
 			//
 			try {
 				//
-				if ((s = ArrayUtils.get(ss, i)) != null
-						&& Narcissus.getField(s, Narcissus.findField(getClass(s), VALUE)) == null) {
+				if (and(s = ArrayUtils.get(ss, i), Objects::nonNull,
+						x -> Narcissus.getField(x, Narcissus.findField(getClass(x), VALUE)) == null)) {
 					//
 					continue;
 					//
@@ -222,7 +223,17 @@ public class SshMain {
 		} // for
 			//
 		return map;
-		//
+		// s
+	}
+
+	private static <T, E extends Exception> boolean and(final T value, final FailablePredicate<T, E> a,
+			final FailablePredicate<T, E> b) throws E {
+		return test(a, value) && test(b, value);
+	}
+
+	private static <T, E extends Exception> boolean test(final FailablePredicate<T, E> instance, final T value)
+			throws E {
+		return instance != null && instance.test(value);
 	}
 
 	private static int length(final Object[] instance) {

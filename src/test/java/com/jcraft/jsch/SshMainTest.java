@@ -18,6 +18,7 @@ import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.function.FailableFunction;
+import org.apache.commons.lang3.function.FailablePredicate;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
@@ -69,7 +70,8 @@ public class SshMainTest {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Predicate && Objects.equals(name, "test")) {
+			} else if (Boolean.logicalOr(proxy instanceof Predicate, proxy instanceof FailablePredicate)
+					&& Objects.equals(name, "test")) {
 				//
 				return test;
 				//
