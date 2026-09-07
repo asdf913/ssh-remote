@@ -14,6 +14,8 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.lang3.ArrayUtils;
@@ -34,7 +36,7 @@ import io.github.toolfactory.narcissus.Narcissus;
 public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
-			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG = null;
+			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -60,6 +62,8 @@ public class SshMainTest {
 		//
 		(METHOD_TO_CONFIG = clz.getDeclaredMethod("toConfig", File.class)).setAccessible(true);
 		//
+		(METHOD_GET_NAME = clz.getDeclaredMethod("getName", Member.class)).setAccessible(true);
+		//
 	}
 
 	private static class IH implements InvocationHandler {
@@ -72,6 +76,12 @@ public class SshMainTest {
 			final String name = getName(method);
 			//
 			if (Objects.equals(getReturnType(method), Void.TYPE)) {
+				//
+				return null;
+				//
+			} // if
+				//
+			if (proxy instanceof Member && Objects.equals(name, "getName")) {
 				//
 				return null;
 				//
@@ -91,14 +101,34 @@ public class SshMainTest {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Collection && Objects.equals(name, "add")) {
+			} else if (proxy instanceof Collection) {
 				//
-				return add;
-				//
+				if (Objects.equals(name, "add")) {
+					//
+					return add;
+					//
+				} else if (Objects.equals(name, "stream")) {
+					//
+					return null;
+					//
+				} // if
+					//
 			} else if (proxy instanceof Map && Objects.equals(name, "put")) {
 				//
 				return null;
 				//
+			} else if (proxy instanceof Stream) {
+				//
+				if (Objects.equals(name, "collect")) {
+					//
+					return null;
+					//
+				} else if (Objects.equals(name, "filter")) {
+					//
+					return proxy;
+					//
+				} // if
+					//
 			} // if
 				//
 			throw new Throwable(name);
@@ -303,7 +333,13 @@ public class SshMainTest {
 							Arrays.equals(parameterTypes,
 									new Class<?>[] { JSch.class, HostAndPort.class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "toHostAndPort"),
-							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Integer.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { String.class, Integer.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getName"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Member.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "collect"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Collector.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "stream"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Collection.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -317,7 +353,25 @@ public class SshMainTest {
 			//
 	}
 
-	private static String getName(final Member instance) {
+	private static String getName(final Member instance) throws Throwable {
+		try {
+			final Object obj = invoke(METHOD_GET_NAME, null, instance);
+			if (obj == null) {
+				return null;
+			} else if (obj instanceof String) {
+				return (String) obj;
+			}
+			throw new Throwable(getName(getClass(obj)));
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	private static Class<?> getClass(final Object instance) {
+		return instance != null ? instance.getClass() : null;
+	}
+
+	private static String getName(final Class<?> instance) {
 		return instance != null ? instance.getName() : null;
 	}
 

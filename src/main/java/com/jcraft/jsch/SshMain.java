@@ -5,8 +5,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,6 +23,9 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
@@ -34,6 +40,7 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -509,22 +516,49 @@ public class SshMain {
 			//
 		} // if
 			//
-		try {
+		final List<Field> fields = testAndApply(Objects::nonNull, getClass(newconf), FieldUtils::getAllFieldsList,
+				null);
+		//
+		Field field = testAndApply(x -> IterableUtils.size(x) == 1,
+				collect(filter(stream(fields), x -> Objects.equals(getName(x), "table")), Collectors.toList()),
+				x -> IterableUtils.get(x, 0), null);
+		//
+		if (field == null) {
 			//
-			if (newconf != null && Narcissus.getField(newconf, Narcissus.findField(getClass(newconf), "map")) == null) {
-				//
-				return;
-				//
-			} // if
-				//
-		} catch (final NoSuchFieldException e) {
+			field = testAndApply(x -> IterableUtils.size(x) == 1,
+					collect(filter(stream(fields), x -> Objects.equals(getName(x), "map")), Collectors.toList()),
+					x -> IterableUtils.get(x, 0), null);
 			//
-			throw new RuntimeException(e);
+		} // if
 			//
-		} // try
+		if (newconf != null && Narcissus.getField(newconf, field) == null) {
+			//
+			return;
+			//
+		} // if
 			//
 		instance.setConfig(newconf);
 		//
+	}
+
+	private static String getName(final Member instance) {
+		return instance != null ? instance.getName() : null;
+	}
+
+	private static <E> Stream<E> stream(final Collection<E> instance) {
+		return instance != null ? instance.stream() : null;
+	}
+
+	private static <T> Stream<T> filter(final Stream<T> instance, final Predicate<T> predicate) {
+		return instance != null && (predicate != null || Proxy.isProxyClass(instance.getClass()))
+				? instance.filter(predicate)
+				: null;
+	}
+
+	private static <T, A, R> R collect(final Stream<T> instance, final Collector<? super T, A, R> collector) {
+		return instance != null && (collector != null || Proxy.isProxyClass(instance.getClass()))
+				? instance.collect(collector)
+				: null;
 	}
 
 	private static void setPassword(final Session instnace, final byte[] password) {
