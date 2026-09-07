@@ -167,13 +167,6 @@ public class SshMain {
 				//
 		} // if
 			//
-		if (commands instanceof List) {
-			//
-			Narcissus.invokeMethod(commands, List.class.getDeclaredMethod("sort", Comparator.class),
-					Reflection.newProxy(Comparator.class, new IH()));
-			//
-		} // if
-			//
 		Session session = null;
 		//
 		try {
@@ -265,6 +258,10 @@ public class SshMain {
 		//
 		final List<String> keys = testAndApply(Objects::nonNull, getKeys(subnodeConfiguration), IteratorUtils::toList,
 				null);
+		//
+		testAndAccept(Objects::nonNull, keys,
+				x -> Narcissus.invokeMethod(x, List.class.getDeclaredMethod("sort", Comparator.class),
+						Reflection.newProxy(Comparator.class, new IH())));
 		//
 		Collection<String> collection = null;
 		//
