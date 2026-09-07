@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -36,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.function.FailableRunnable;
@@ -64,6 +64,8 @@ public class SshMain {
 		private byte[] password = null;
 
 		private Iterable<String> commands = null;
+
+		private File privateKey = null;
 
 	}
 
@@ -108,6 +110,8 @@ public class SshMain {
 		//
 		Iterable<String> commands = null;
 		//
+		File privateKey = null;
+		//
 		if (map != null && !map.isEmpty()) {
 			//
 			if (map.containsKey("file")) {
@@ -124,6 +128,8 @@ public class SshMain {
 					//
 					commands = config.commands;
 					//
+					privateKey = config.privateKey;
+					//
 				} // if
 					//
 			} else {
@@ -136,6 +142,8 @@ public class SshMain {
 				password = getBytes(map.get("password"));
 				//
 				commands = Collections.singleton(map.get("command"));
+				//
+				privateKey = testAndApply(Objects::nonNull, map.get("privateKey"), File::new, null);
 				//
 			} // if
 				//
@@ -153,6 +161,8 @@ public class SshMain {
 				//
 				commands = config.commands;
 				//
+				privateKey = config.privateKey;
+				//
 			} // if
 				//
 		} // if
@@ -168,8 +178,20 @@ public class SshMain {
 		//
 		try {
 			//
-			setPassword(session = getSession(new JSch(), hostAndPort, user), password);
+			final JSch jSch = new JSch();
 			//
+			final String absolutePath = privateKey != null ? privateKey.getAbsolutePath() : null;
+			//
+			testAndAccept(Objects::nonNull, absolutePath, x -> jSch.addIdentity(x));
+			//
+			session = getSession(jSch, hostAndPort, user);
+			//
+			if (absolutePath != null) {
+				//
+				setPassword(session, password);
+				//
+			} // if
+				//
 			final Properties config = new Properties();
 			//
 			put(config, "StrictHostKeyChecking", "no");
@@ -254,6 +276,8 @@ public class SshMain {
 		} // for
 			//
 		config.commands = collection;
+		//
+		config.privateKey = testAndApply(Objects::nonNull, getString(iniConfiguration, "privateKey"), File::new, null);
 		//
 		return config;
 		//
@@ -449,13 +473,14 @@ public class SshMain {
 		//
 	}
 
-	private static <T> void testAndAccept(final Predicate<T> predicate, final T value, final Consumer<T> consumer) {
+	private static <T, E extends Exception> void testAndAccept(final Predicate<T> predicate, final T value,
+			final FailableConsumer<T, E> consumer) throws E {
 		if (test(predicate, value)) {
 			accept(consumer, value);
 		}
 	}
 
-	private static <T> void accept(final Consumer<T> instance, final T value) {
+	private static <T, E extends Exception> void accept(final FailableConsumer<T, E> instance, final T value) throws E {
 		if (instance != null) {
 			instance.accept(value);
 		}
