@@ -175,7 +175,7 @@ public class SshMain {
 			//
 			final String absolutePath = privateKey != null ? privateKey.getAbsolutePath() : null;
 			//
-			testAndAccept(Objects::nonNull, absolutePath, x -> jSch.addIdentity(x));
+			testAndAccept(Objects::nonNull, absolutePath, jSch::addIdentity);
 			//
 			session = getSession(jSch, hostAndPort, user);
 			//
