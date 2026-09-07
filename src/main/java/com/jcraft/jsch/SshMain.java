@@ -202,13 +202,17 @@ public class SshMain {
 				info(LOG, string = IterableUtils.get(commands, i));
 				//
 				try (final InputStream is = getInputStream(
-						channel = cast(ChannelExec.class, openChannel(session, "exec")))) {
+						channel = cast(ChannelExec.class, openChannel(session, "exec")));
+						final InputStream err = getErrStream(channel)) {
 					//
 					setCommand(channel, string);
 					//
 					connect(channel);
 					//
 					info(LOG, cast(String.class, testAndApply(Objects::nonNull, is,
+							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
+					//
+					error(LOG, cast(String.class, testAndApply(Objects::nonNull, err,
 							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
 					//
 					disconnect(channel);
@@ -228,6 +232,12 @@ public class SshMain {
 	private static void info(final Logger instance, final String msg) {
 		if (instance != null) {
 			instance.info(msg);
+		}
+	}
+
+	private static void error(final Logger instance, final String msg) {
+		if (instance != null) {
+			instance.error(msg);
 		}
 	}
 
@@ -467,6 +477,32 @@ public class SshMain {
 		} // try
 			//
 		return instance.getInputStream();
+		//
+	}
+
+	private static InputStream getErrStream(final ChannelExec instance) throws IOException {
+		//
+		if (instance == null) {
+			//
+			return null;
+			//
+		} // if
+			//
+		try {
+			//
+			if (Narcissus.getField(instance, Narcissus.findField(getClass(instance), "io")) == null) {
+				//
+				return null;
+				//
+			} // if
+				//
+		} catch (final NoSuchFieldException e) {
+			//
+			throw new RuntimeException(e);
+			//
+		} // try
+			//
+		return instance.getErrStream();
 		//
 	}
 

@@ -331,6 +331,8 @@ public class SshMainTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { Session.class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getInputStream"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Channel.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getErrStream"),
+							Arrays.equals(parameterTypes, new Class<?>[] { ChannelExec.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getSession"),
 							Arrays.equals(parameterTypes,
 									new Class<?>[] { JSch.class, HostAndPort.class, String.class }))
