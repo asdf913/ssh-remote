@@ -173,7 +173,7 @@ public class SshMain {
 			//
 			final JSch jSch = new JSch();
 			//
-			final String absolutePath = privateKey != null ? privateKey.getAbsolutePath() : null;
+			final String absolutePath = getAbsolutePath(privateKey);
 			//
 			testAndAccept(Objects::nonNull, absolutePath, jSch::addIdentity);
 			//
@@ -603,6 +603,10 @@ public class SshMain {
 
 	private static boolean canRead(final File instance) {
 		return instance != null && instance.getPath() != null && instance.canRead();
+	}
+
+	private static String getAbsolutePath(final File instance) {
+		return instance != null && instance.getPath() != null ? instance.getAbsolutePath() : null;
 	}
 
 	private static boolean isFile(final File instance) {

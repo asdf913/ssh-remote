@@ -36,7 +36,7 @@ import io.github.toolfactory.narcissus.Narcissus;
 public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
-			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME = null;
+			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -63,6 +63,8 @@ public class SshMainTest {
 		(METHOD_TO_CONFIG = clz.getDeclaredMethod("toConfig", File.class)).setAccessible(true);
 		//
 		(METHOD_GET_NAME = clz.getDeclaredMethod("getName", Member.class)).setAccessible(true);
+		//
+		(METHOD_GET_ABSOLUTE_PATH = clz.getDeclaredMethod("getAbsolutePath", File.class)).setAccessible(true);
 		//
 	}
 
@@ -339,7 +341,9 @@ public class SshMainTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "collect"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Collector.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "stream"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Collection.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { Collection.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getAbsolutePath"),
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -474,7 +478,14 @@ public class SshMainTest {
 	@Test
 	public void testToConfig() throws IllegalAccessException, InvocationTargetException {
 		//
-		Assert.assertNotNull(invoke(METHOD_TO_CONFIG, null, new File("pom.xml")));
+		Assert.assertNotNull(invoke(METHOD_TO_CONFIG, null, file));
+		//
+	}
+
+	@Test
+	public void testGetAbsolutePath() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertNotNull(invoke(METHOD_GET_ABSOLUTE_PATH, null, file));
 		//
 	}
 
