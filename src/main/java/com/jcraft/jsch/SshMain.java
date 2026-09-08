@@ -88,7 +88,11 @@ public class SshMain {
 			//
 			if (map.containsKey("file")) {
 				//
-				final Config config = toConfig(new File(map.get("file")));
+				final File file = testAndApply(Objects::nonNull, map.get("file"), File::new, null);
+				//
+				final Config config = toConfig(file);
+				//
+				info(LOG, "file       ={}", getAbsolutePath(file));
 				//
 				if (config != null) {
 					//
@@ -121,7 +125,11 @@ public class SshMain {
 				//
 		} else {
 			//
-			final Config config = toConfig(new File("config.xml"));
+			final File file = new File("config.xml");
+			//
+			final Config config = toConfig(file);
+			//
+			info(LOG, "file       ={}", getAbsolutePath(file));
 			//
 			if (config != null) {
 				//
@@ -139,9 +147,9 @@ public class SshMain {
 				//
 		} // if
 			//
-		info(LOG, "user       ={}", user);
-		//
 		info(LOG, "hostAndPort={}", hostAndPort);
+		//
+		info(LOG, "user       ={}", user);
 		//
 		info(LOG, "privateKey ={}", privateKey);
 		//
