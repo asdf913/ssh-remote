@@ -212,8 +212,9 @@ public class SshMain {
 					info(LOG, cast(String.class, testAndApply(Objects::nonNull, is,
 							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
 					//
-					error(LOG, cast(String.class, testAndApply(Objects::nonNull, err,
-							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
+					testAndAccept(StringUtils::isNotBlank,
+							testAndApply(Objects::nonNull, err, x -> IOUtils.toString(x, StandardCharsets.UTF_8), null),
+							x -> error(LOG, x));
 					//
 					disconnect(channel);
 					//
