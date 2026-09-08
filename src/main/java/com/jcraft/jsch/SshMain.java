@@ -173,13 +173,12 @@ public class SshMain {
 			//
 			final JSch jSch = new JSch();
 			//
-			final String absolutePath = getAbsolutePath(privateKey);
-			//
-			testAndAccept(Objects::nonNull, absolutePath, jSch::addIdentity);
+			testAndAccept(x -> and(x, SshMain::exists, SshMain::isFile, SshMain::canRead), privateKey,
+					x -> jSch.addIdentity(getAbsolutePath(x)));
 			//
 			session = getSession(jSch, hostAndPort, user);
 			//
-			if (absolutePath != null) {
+			if (getAbsolutePath(privateKey) != null) {
 				//
 				setPassword(session, password);
 				//
