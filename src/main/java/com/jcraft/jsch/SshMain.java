@@ -266,7 +266,9 @@ public class SshMain {
 	}
 
 	private static Document parse(final DocumentBuilder instance, final File file) throws SAXException, IOException {
-		return instance != null && file != null && file.getPath() != null ? instance.parse(file) : null;
+		return instance != null && file != null && file.getPath() != null && and(file, SshMain::exists, SshMain::isFile)
+				? instance.parse(file)
+				: null;
 	}
 
 	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance)

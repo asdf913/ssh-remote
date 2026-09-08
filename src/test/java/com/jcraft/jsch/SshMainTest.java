@@ -526,7 +526,11 @@ public class SshMainTest {
 	@Test
 	public void testParse() throws Throwable {
 		//
-		Assert.assertNull(invoke(METHOD_PARSE, null, newDocumentBuilder(DocumentBuilderFactory.newInstance()), null));
+		final DocumentBuilder db = newDocumentBuilder(DocumentBuilderFactory.newInstance());
+		//
+		Assert.assertNull(invoke(METHOD_PARSE, null, db, null));
+		//
+		Assert.assertNull(invoke(METHOD_PARSE, null, db, new File(".")));
 		//
 	}
 
