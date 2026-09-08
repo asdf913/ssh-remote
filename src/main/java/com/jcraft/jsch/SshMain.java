@@ -167,6 +167,12 @@ public class SshMain {
 				//
 		} // if
 			//
+		info(LOG, "user       ={}", user);
+		//
+		info(LOG, "hostAndPort={}", hostAndPort);
+		//
+		info(LOG, "privateKey ={}", privateKey);
+		//
 		Session session = null;
 		//
 		try {
@@ -232,6 +238,12 @@ public class SshMain {
 	private static void info(final Logger instance, final String msg) {
 		if (instance != null) {
 			instance.info(msg);
+		}
+	}
+
+	private static void info(final Logger instance, final String format, final Object arg) {
+		if (instance != null) {
+			instance.info(format, arg);
 		}
 	}
 
