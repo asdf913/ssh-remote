@@ -1,21 +1,15 @@
 package com.jcraft.jsch;
 
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Member;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +20,15 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
 import org.apache.commons.collections4.IterableUtils;
-import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.configuration2.INIConfiguration;
-import org.apache.commons.configuration2.ImmutableConfiguration;
-import org.apache.commons.configuration2.SubnodeConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -38,14 +36,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
-import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.google.common.net.HostAndPort;
-import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
 
@@ -66,35 +66,6 @@ public class SshMain {
 		private Iterable<String> commands = null;
 
 		private File privateKey = null;
-
-	}
-
-	private static class IH implements InvocationHandler {
-
-		@Override
-		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-			//
-			final String name = method != null ? method.getName() : null;
-			//
-			if (proxy instanceof Comparator && Objects.equals(name, "compare") && args != null && args.length > 1) {
-				//
-				final String sa = Objects.toString(ArrayUtils.get(args, 0));
-				//
-				final String sb = Objects.toString(ArrayUtils.get(args, 1));
-				//
-				if (Boolean.logicalAnd(NumberUtils.isDigits(sa), NumberUtils.isDigits(sb))) {
-					//
-					return Integer.valueOf(Integer.compare(NumberUtils.toInt(sa), NumberUtils.toInt(sb)));
-					//
-				} // if
-					//
-				return Integer.valueOf(ObjectUtils.compare(sa, sb));
-				//
-			} // if
-				//
-			throw new Throwable(name);
-			//
-		}
 
 	}
 
@@ -149,7 +120,7 @@ public class SshMain {
 				//
 		} else {
 			//
-			final Config config = toConfig(new File("config.ini"));
+			final Config config = toConfig(new File("config.xml"));
 			//
 			if (config != null) {
 				//
@@ -253,53 +224,63 @@ public class SshMain {
 		}
 	}
 
-	private static Config toConfig(final File file) throws Exception {
+	private static Config toConfig(final File file)
+			throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
 		//
-		final INIConfiguration iniConfiguration = new INIConfiguration();
+		final DocumentBuilder db = newDocumentBuilder(DocumentBuilderFactory.newInstance());
 		//
-		testAndRun(and(file, SshMain::exists, SshMain::isFile, SshMain::canRead), () -> {
-			//
-			try (final Reader reader = new FileReader(file)) {
-				//
-				iniConfiguration.read(reader);
-				//
-			} // try
-				//
-		});
+		final Document document = file != null && file.getPath() != null && exists(file) ? parse(db, file) : null;
+		//
+		final XPath xp = newXPath(XPathFactory.newInstance());
 		//
 		final Config config = new Config();
 		//
-		config.user = getString(iniConfiguration, "user");
+		config.user = evaluate(xp, "/*/user", document);
 		//
-		config.hostAndPort = toHostAndPort(getString(iniConfiguration, "host"),
-				testAndApply(NumberUtils::isDigits, getString(iniConfiguration, "port"), Integer::valueOf, null));
+		config.hostAndPort = toHostAndPort(evaluate(xp, "/*/host", document),
+				testAndApply(NumberUtils::isDigits, evaluate(xp, "/*/port", document), Integer::valueOf, null));
 		//
-		config.password = getBytes(getString(iniConfiguration, "password"));
+		config.password = getBytes(evaluate(xp, "/*/password", document));
 		//
-		final SubnodeConfiguration subnodeConfiguration = iniConfiguration.getSection("command");
-		//
-		final List<String> keys = testAndApply(Objects::nonNull, getKeys(subnodeConfiguration), IteratorUtils::toList,
-				null);
-		//
-		testAndAccept(Objects::nonNull, keys,
-				x -> Narcissus.invokeMethod(x, List.class.getDeclaredMethod("sort", Comparator.class),
-						Reflection.newProxy(Comparator.class, new IH())));
+		final NodeList nodeList = cast(NodeList.class,
+				xp != null && document != null ? xp.evaluate("/*/*/command", document, XPathConstants.NODESET) : null);
 		//
 		Collection<String> collection = null;
 		//
-		for (int i = 0; i < IterableUtils.size(keys); i++) {
+		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
-			add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
-					getString(subnodeConfiguration, IterableUtils.get(keys, i)));
+			add(collection = ObjectUtils.getIfNull(collection, ArrayList::new), getTextContent(nodeList.item(i)));
 			//
 		} // for
 			//
 		config.commands = collection;
 		//
-		config.privateKey = testAndApply(Objects::nonNull, getString(iniConfiguration, "privateKey"), File::new, null);
+		config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "/*/privateKey", document), File::new, null);
 		//
 		return config;
 		//
+	}
+
+	private static XPath newXPath(final XPathFactory instance) {
+		return instance != null ? instance.newXPath() : null;
+	}
+
+	private static Document parse(final DocumentBuilder instance, final File file) throws SAXException, IOException {
+		return instance != null && file != null && file.getPath() != null ? instance.parse(file) : null;
+	}
+
+	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance)
+			throws ParserConfigurationException {
+		return instance != null ? instance.newDocumentBuilder() : null;
+	}
+
+	private static String getTextContent(final Node instnace) {
+		return instnace != null ? instnace.getTextContent() : null;
+	}
+
+	private static String evaluate(final XPath instance, final String expression, final Object item)
+			throws XPathExpressionException {
+		return instance != null && item != null ? instance.evaluate(expression, item) : null;
 	}
 
 	private static HostAndPort toHostAndPort(final String host, final Integer port) {
@@ -531,13 +512,6 @@ public class SshMain {
 		}
 	}
 
-	private static <E extends Throwable> void testAndRun(final boolean condition, final FailableRunnable<E> runnable)
-			throws E {
-		if (condition && runnable != null) {
-			runnable.run();
-		}
-	}
-
 	private static Channel openChannel(final Session instance, final String type) throws JSchException {
 		return instance != null && instance.isConnected() ? instance.openChannel(type) : null;
 	}
@@ -554,7 +528,7 @@ public class SshMain {
 
 	private static void connect(final Session instance) throws JSchException {
 		//
-		if (instance == null) {
+		if (instance == null || StringUtils.isEmpty(instance.getHost())) {
 			//
 			return;
 			//
@@ -639,14 +613,6 @@ public class SshMain {
 
 	private static <T> T cast(final Class<T> clz, final Object instance) {
 		return clz != null && clz.isInstance(instance) ? clz.cast(instance) : null;
-	}
-
-	private static String getString(final ImmutableConfiguration instance, final String key) {
-		return instance != null ? instance.getString(key) : null;
-	}
-
-	private static Iterator<String> getKeys(final ImmutableConfiguration instance) {
-		return instance != null ? instance.getKeys() : null;
 	}
 
 	private static boolean canRead(final File instance) {

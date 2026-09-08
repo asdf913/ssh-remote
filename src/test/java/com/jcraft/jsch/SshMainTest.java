@@ -10,14 +10,17 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-import org.apache.commons.configuration2.ImmutableConfiguration;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.function.FailableFunction;
@@ -26,6 +29,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
+import org.w3c.dom.Node;
 
 import com.google.common.base.Predicates;
 import com.google.common.net.HostAndPort;
@@ -36,7 +40,8 @@ import io.github.toolfactory.narcissus.Narcissus;
 public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
-			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH = null;
+			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH, METHOD_PARSE,
+			METHOD_NEW_DOCUMENT_BUILDER = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
@@ -65,6 +70,11 @@ public class SshMainTest {
 		(METHOD_GET_NAME = clz.getDeclaredMethod("getName", Member.class)).setAccessible(true);
 		//
 		(METHOD_GET_ABSOLUTE_PATH = clz.getDeclaredMethod("getAbsolutePath", File.class)).setAccessible(true);
+		//
+		(METHOD_PARSE = clz.getDeclaredMethod("parse", DocumentBuilder.class, File.class)).setAccessible(true);
+		//
+		(METHOD_NEW_DOCUMENT_BUILDER = clz.getDeclaredMethod("newDocumentBuilder", DocumentBuilderFactory.class))
+				.setAccessible(true);
 		//
 	}
 
@@ -98,11 +108,6 @@ public class SshMainTest {
 				//
 				return test;
 				//
-			} else if (proxy instanceof ImmutableConfiguration
-					&& contains(Arrays.asList("getKeys", "getString"), name)) {
-				//
-				return null;
-				//
 			} else if (proxy instanceof Collection) {
 				//
 				if (Objects.equals(name, "add")) {
@@ -131,6 +136,14 @@ public class SshMainTest {
 					//
 				} // if
 					//
+			} else if (proxy instanceof XPath && Objects.equals(name, "evaluate")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof Node && Objects.equals(name, "getTextContent")) {
+				//
+				return null;
+				//
 			} // if
 				//
 			throw new Throwable(name);
@@ -274,6 +287,20 @@ public class SshMainTest {
 					//
 					add(collection, Narcissus.allocateInstance(ChannelExec.class));
 					//
+				} else if (Objects.equals(parameterType, XPathFactory.class)) {
+					//
+					add(collection, XPathFactory.newInstance());
+					//
+				} else if (Objects.equals(parameterType, DocumentBuilderFactory.class)) {
+					//
+					add(collection, DocumentBuilderFactory.newInstance());
+					//
+				} else if (Objects.equals(parameterType, DocumentBuilder.class)) {
+					//
+					final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+					//
+					add(collection, dbf != null ? dbf.newDocumentBuilder() : null);
+					//
 				} else if (parameterType != null && parameterType.isInterface()) {
 					//
 					if ((ih = ObjectUtils.getIfNull(ih, IH::new)) != null
@@ -320,11 +347,6 @@ public class SshMainTest {
 							Arrays.equals(parameterTypes,
 									new Class<?>[] { Predicate.class, Object.class, FailableFunction.class,
 											FailableFunction.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "getKeys"),
-							Arrays.equals(parameterTypes, new Class<?>[] { ImmutableConfiguration.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "getString"),
-							Arrays.equals(parameterTypes,
-									new Class<?>[] { ImmutableConfiguration.class, String.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "cast"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Class.class, Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "openChannel"),
@@ -345,7 +367,13 @@ public class SshMainTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "stream"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Collection.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getAbsolutePath"),
-							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "evaluate"),
+							Arrays.equals(parameterTypes, new Class<?>[] { XPath.class, String.class, Object.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getTextContent"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Node.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "parse"),
+							Arrays.equals(parameterTypes, new Class<?>[] { DocumentBuilder.class, File.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -492,34 +520,24 @@ public class SshMainTest {
 	}
 
 	@Test
-	public void testIH() throws Throwable {
+	public void testParse() throws Throwable {
 		//
-		final InvocationHandler invocationHandler = cast(InvocationHandler.class,
-				Narcissus.allocateInstance(Class.forName("com.jcraft.jsch.SshMain$IH")));
+		Assert.assertNull(invoke(METHOD_PARSE, null, newDocumentBuilder(DocumentBuilderFactory.newInstance()), null));
 		//
-		if (invocationHandler != null) {
-			//
-			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(null, null, null));
-			//
-			final Comparator<?> comparator = Reflection.newProxy(Comparator.class, invocationHandler);
-			//
-			final int zero = 0;
-			//
-			Assert.assertEquals(comparator != null ? comparator.compare(null, null) : null, Integer.valueOf(zero));
-			//
-			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, null, null));
-			//
-			final Method method = Comparator.class.getDeclaredMethod("compare", Object.class, Object.class);
-			//
-			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, method, null));
-			//
-			Assert.assertThrows(Throwable.class, () -> invocationHandler.invoke(comparator, method, new Object[] {}));
-			//
-			Assert.assertEquals(invocationHandler.invoke(comparator, method,
-					new Object[] { Integer.valueOf(zero), Integer.valueOf(zero) }), Integer.valueOf(zero));
-			//
-		} // if
-			//
+	}
+
+	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance) throws Throwable {
+		try {
+			final Object obj = invoke(METHOD_NEW_DOCUMENT_BUILDER, null, instance);
+			if (obj == null) {
+				return null;
+			} else if (obj instanceof DocumentBuilder) {
+				return (DocumentBuilder) obj;
+			}
+			throw new Throwable(getName(getClass(obj)));
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
 	}
 
 }
