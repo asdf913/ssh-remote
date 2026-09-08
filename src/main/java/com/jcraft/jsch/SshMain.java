@@ -236,9 +236,7 @@ public class SshMain {
 	private static Config toConfig(final File file)
 			throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
 		//
-		final DocumentBuilder db = newDocumentBuilder(DocumentBuilderFactory.newInstance());
-		//
-		final Document document = file != null && file.getPath() != null && exists(file) ? parse(db, file) : null;
+		final Document document = parse(newDocumentBuilder(DocumentBuilderFactory.newInstance()), file);
 		//
 		final XPath xp = newXPath(XPathFactory.newInstance());
 		//
