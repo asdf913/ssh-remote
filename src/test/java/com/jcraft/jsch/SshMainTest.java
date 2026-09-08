@@ -16,6 +16,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
@@ -366,10 +367,13 @@ public class SshMainTest {
 							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Collector.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "stream"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Collection.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "getAbsolutePath"),
-							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "evaluate"),
-							Arrays.equals(parameterTypes, new Class<?>[] { XPath.class, String.class, Object.class }))
+					|| Boolean
+							.logicalAnd(Objects.equals(name, "getAbsolutePath"), Arrays.equals(parameterTypes,
+									new Class<?>[] { File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "evaluate"), Boolean.logicalOr(
+							Arrays.equals(parameterTypes, new Class<?>[] { XPath.class, String.class, Object.class }),
+							Arrays.equals(parameterTypes,
+									new Class<?>[] { XPath.class, String.class, Object.class, QName.class })))
 					|| Boolean.logicalAnd(Objects.equals(name, "getTextContent"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Node.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "parse"),

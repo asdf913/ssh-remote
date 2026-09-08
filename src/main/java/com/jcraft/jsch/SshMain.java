@@ -20,6 +20,7 @@ import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -242,8 +243,7 @@ public class SshMain {
 		//
 		config.password = getBytes(evaluate(xp, "/*/password", document));
 		//
-		final NodeList nodeList = cast(NodeList.class,
-				xp != null && document != null ? xp.evaluate("/*/*/command", document, XPathConstants.NODESET) : null);
+		final NodeList nodeList = cast(NodeList.class, evaluate(xp, "/*/*/command", document, XPathConstants.NODESET));
 		//
 		Collection<String> collection = null;
 		//
@@ -281,6 +281,11 @@ public class SshMain {
 	private static String evaluate(final XPath instance, final String expression, final Object item)
 			throws XPathExpressionException {
 		return instance != null && item != null ? instance.evaluate(expression, item) : null;
+	}
+
+	private static Object evaluate(final XPath instance, final String expression, final Object item, final QName qName)
+			throws XPathExpressionException {
+		return instance != null && item != null ? instance.evaluate(expression, item, qName) : null;
 	}
 
 	private static HostAndPort toHostAndPort(final String host, final Integer port) {
