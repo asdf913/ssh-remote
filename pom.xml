@@ -28,7 +28,7 @@
 		<dependency>
 			<groupId>io.github.toolfactory</groupId>
 			<artifactId>narcissus</artifactId>
-			<version>1.0.11</version>
+			<version>1.0.12</version>
 		</dependency>
 		<!--https://mvnrepository.com/artifact/com.google.guava/guava -->
 		<dependency>
