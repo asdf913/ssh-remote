@@ -209,7 +209,7 @@ public class SshMainTest {
 				} // if
 					//
 			} // for
-
+				//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
 			toString = Objects.toString(m);
