@@ -33,6 +33,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import com.google.common.base.Predicates;
@@ -44,7 +46,7 @@ import io.github.toolfactory.narcissus.Narcissus;
 public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
-			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH, METHOD_PARSE,
+			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIGS, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH, METHOD_PARSE,
 			METHOD_NEW_DOCUMENT_BUILDER, METHOD_TEST_AND_APPLY, METHOD_FILTER, METHOD_COLLECT, METHOD_INFO = null;
 
 	@BeforeSuite
@@ -69,7 +71,7 @@ public class SshMainTest {
 		(METHOD_TO_HOST_AND_PORT = clz.getDeclaredMethod("toHostAndPort", String.class, Integer.class))
 				.setAccessible(true);
 		//
-		(METHOD_TO_CONFIG = clz.getDeclaredMethod("toConfig", File.class)).setAccessible(true);
+		(METHOD_TO_CONFIGS = clz.getDeclaredMethod("toConfigs", File.class)).setAccessible(true);
 		//
 		(METHOD_GET_NAME = clz.getDeclaredMethod("getName", Member.class)).setAccessible(true);
 		//
@@ -156,6 +158,10 @@ public class SshMainTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof Iterable && Objects.equals(name, "spliterator")) {
+				//
+				return null;
+				//
 			} // if
 				//
 			if (proxy instanceof FailableFunction && Objects.equals(name, "apply")) {
@@ -206,6 +212,14 @@ public class SshMainTest {
 			} else if (proxy instanceof org.slf4j.Logger && Objects.equals(name, "isInfoEnabled")) {
 				//
 				return isInfoEnabled;
+				//
+			} else if (proxy instanceof Element && Objects.equals(name, "getChildNodes")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof Document && Objects.equals(name, "getDocumentElement")) {
+				//
+				return null;
 				//
 			} // if
 				//
@@ -441,7 +455,15 @@ public class SshMainTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "getTextContent"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Node.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "parse"),
-							Arrays.equals(parameterTypes, new Class<?>[] { DocumentBuilder.class, File.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { DocumentBuilder.class, File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "spliterator"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Iterable.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "toConfigs"),
+							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getChildNodes"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Element.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getDocumentElement"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Document.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//
@@ -574,9 +596,9 @@ public class SshMainTest {
 	}
 
 	@Test
-	public void testToConfig() throws IllegalAccessException, InvocationTargetException {
+	public void testToConfigs() throws IllegalAccessException, InvocationTargetException {
 		//
-		Assert.assertNotNull(invoke(METHOD_TO_CONFIG, null, file));
+		Assert.assertNotNull(invoke(METHOD_TO_CONFIGS, null, file));
 		//
 	}
 

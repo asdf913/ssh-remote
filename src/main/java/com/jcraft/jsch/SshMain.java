@@ -15,10 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Spliterator;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
@@ -39,9 +41,11 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.stream.Streams.FailableStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -82,11 +86,14 @@ public class SshMain {
 				//
 				info(LOG, "file       ={}", getAbsolutePath(file));
 				//
-				final Config config = toConfig(file);
-				//
-				info(LOG, config);
-				//
-				perform(config);
+				forEach(new FailableStream<>(testAndApply(Objects::nonNull, spliterator(toConfigs(file)),
+						x -> StreamSupport.stream(x, false), null)), x -> {
+							//
+							info(LOG, x);
+							//
+							perform(x);
+							//
+						});
 				//
 			} else {
 				//
@@ -115,14 +122,27 @@ public class SshMain {
 			//
 			info(LOG, "file       ={}", getAbsolutePath(file));
 			//
-			final Config config = toConfig(file);
-			//
-			info(LOG, config);
-			//
-			perform(config);
+			forEach(new FailableStream<>(testAndApply(Objects::nonNull, spliterator(toConfigs(file)),
+					x -> StreamSupport.stream(x, false), null)), x -> {
+						//
+						info(LOG, x);
+						//
+						perform(x);
+						//
+					});
 			//
 		} // if
 			//
+	}
+
+	private static <T> void forEach(final FailableStream<T> instance, final FailableConsumer<T, ?> action) {
+		if (instance != null && instance.stream() != null) {
+			instance.forEach(action);
+		}
+	}
+
+	private static <T> Spliterator<T> spliterator(final Iterable<T> instance) {
+		return instance != null ? instance.spliterator() : null;
 	}
 
 	private static void info(final Logger logger, final Config instance) {
@@ -233,37 +253,58 @@ public class SshMain {
 		}
 	}
 
-	private static Config toConfig(final File file)
+	private static NodeList getChildNodes(final Element instance) {
+		return instance != null ? instance.getChildNodes() : null;
+	}
+
+	private static Element getDocumentElement(final Document instance) {
+		return instance != null ? instance.getDocumentElement() : null;
+	}
+
+	private static Iterable<Config> toConfigs(final File file)
 			throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
 		//
 		final Document document = parse(newDocumentBuilder(DocumentBuilderFactory.newInstance()), file);
 		//
 		final XPath xp = newXPath(XPathFactory.newInstance());
 		//
-		final Config config = new Config();
+		Collection<Config> configs = null;
 		//
-		config.user = evaluate(xp, "/*/user", document);
+		Config config = null;
 		//
-		config.hostAndPort = toHostAndPort(evaluate(xp, "/*/host", document),
-				testAndApply(NumberUtils::isDigits, evaluate(xp, "/*/port", document), Integer::valueOf, null));
-		//
-		config.password = getBytes(evaluate(xp, "/*/password", document));
-		//
-		final NodeList nodeList = cast(NodeList.class, evaluate(xp, "/*/*/command", document, XPathConstants.NODESET));
+		NodeList nodeList = getChildNodes(getDocumentElement(document));
 		//
 		Collection<String> collection = null;
 		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
-			add(collection = ObjectUtils.getIfNull(collection, ArrayList::new), getTextContent(nodeList.item(i)));
+			(config = new Config()).user = evaluate(xp, "/*/user", document);
+			//
+			config.hostAndPort = toHostAndPort(evaluate(xp, "/*/host", document),
+					testAndApply(NumberUtils::isDigits, evaluate(xp, "/*/port", document), Integer::valueOf, null));
+			//
+			config.password = getBytes(evaluate(xp, "/*/password", document));
+			//
+			nodeList = cast(NodeList.class, evaluate(xp, "/*/*/command", document, XPathConstants.NODESET));
+			//
+			collection = null;
+			//
+			for (int j = 0; nodeList != null && j < nodeList.getLength(); j++) {
+				//
+				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new), getTextContent(nodeList.item(j)));
+				//
+			} // for
+				//
+			config.commands = collection;
+			//
+			config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "/*/privateKey", document), File::new,
+					null);
+			//
+			add(configs = ObjectUtils.getIfNull(configs, ArrayList::new), config);
 			//
 		} // for
 			//
-		config.commands = collection;
-		//
-		config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "/*/privateKey", document), File::new, null);
-		//
-		return config;
+		return configs;
 		//
 	}
 
