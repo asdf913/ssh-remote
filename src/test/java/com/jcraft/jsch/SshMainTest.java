@@ -87,11 +87,15 @@ public class SshMainTest {
 		//
 		(METHOD_COLLECT = clz.getDeclaredMethod("collect", Stream.class, Collector.class)).setAccessible(true);
 		//
-		(METHOD_INFO = clz.getDeclaredMethod("info", org.slf4j.Logger.class,
-				cast(Class.class, testAndApply(x -> IterableUtils.size(x) == 1,
-						collect(filter(testAndApply(Objects::nonNull, clz.getDeclaredClasses(), Arrays::stream, null),
-								x -> contains(getName(x), "Config")), Collectors.toList()),
-						x -> IterableUtils.get(x, 0), null))))
+		final Stream<Class<?>> stream = testAndApply(Objects::nonNull, clz.getDeclaredClasses(), Arrays::stream, null);
+		//
+		(METHOD_INFO = clz
+				.getDeclaredMethod("info", org.slf4j.Logger.class,
+						cast(Class.class,
+								testAndApply(x -> IterableUtils.size(x) == 1,
+										collect(filter(stream, x -> contains(getName(x), "Config")),
+												Collectors.toList()),
+										x -> IterableUtils.get(x, 0), null))))
 				.setAccessible(true);
 		//
 	}
