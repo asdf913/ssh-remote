@@ -87,14 +87,17 @@ public class SshMainTest {
 		//
 		(METHOD_COLLECT = clz.getDeclaredMethod("collect", Stream.class, Collector.class)).setAccessible(true);
 		//
-		(METHOD_INFO = clz.getDeclaredMethod("info", org.slf4j.Logger.class, cast(Class.class,
-				testAndApply(x -> IterableUtils.size(x) == 1,
+		(METHOD_INFO = clz.getDeclaredMethod("info", org.slf4j.Logger.class,
+				cast(Class.class, testAndApply(x -> IterableUtils.size(x) == 1,
 						collect(filter(testAndApply(Objects::nonNull, clz.getDeclaredClasses(), Arrays::stream, null),
-								x -> x != null && getName(x) != null && getName(x).contains("Config")),
-								Collectors.toList()),
+								x -> contains(getName(x), "Config")), Collectors.toList()),
 						x -> IterableUtils.get(x, 0), null))))
 				.setAccessible(true);
 		//
+	}
+
+	private static boolean contains(final String instance, final CharSequence s) {
+		return instance != null && instance.contains(s);
 	}
 
 	private static <T, A, R> R collect(final Stream<T> instance, final Collector<? super T, A, R> collector)
