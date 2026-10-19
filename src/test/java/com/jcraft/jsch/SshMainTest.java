@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.xml.namespace.QName;
@@ -22,10 +23,12 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.function.FailablePredicate;
+import org.slf4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
@@ -42,10 +45,10 @@ public class SshMainTest {
 
 	private static Method METHOD_EXISTS, METHOD_IS_FILE, METHOD_CAN_READ, METHOD_AND, METHOD_CAST, METHOD_GET_SESSION,
 			METHOD_TO_HOST_AND_PORT, METHOD_TO_CONFIG, METHOD_GET_NAME, METHOD_GET_ABSOLUTE_PATH, METHOD_PARSE,
-			METHOD_NEW_DOCUMENT_BUILDER = null;
+			METHOD_NEW_DOCUMENT_BUILDER, METHOD_TEST_AND_APPLY, METHOD_FILTER, METHOD_COLLECT, METHOD_INFO = null;
 
 	@BeforeSuite
-	void beforeSuite() throws NoSuchMethodException {
+	void beforeSuite() throws Throwable {
 		//
 		final Class<?> clz = SshMain.class;
 		//
@@ -77,11 +80,59 @@ public class SshMainTest {
 		(METHOD_NEW_DOCUMENT_BUILDER = clz.getDeclaredMethod("newDocumentBuilder", DocumentBuilderFactory.class))
 				.setAccessible(true);
 		//
+		(METHOD_TEST_AND_APPLY = clz.getDeclaredMethod("testAndApply", Predicate.class, Object.class,
+				FailableFunction.class, FailableFunction.class)).setAccessible(true);
+		//
+		(METHOD_FILTER = clz.getDeclaredMethod("filter", Stream.class, Predicate.class)).setAccessible(true);
+		//
+		(METHOD_COLLECT = clz.getDeclaredMethod("collect", Stream.class, Collector.class)).setAccessible(true);
+		//
+		(METHOD_INFO = clz.getDeclaredMethod("info", org.slf4j.Logger.class, cast(Class.class,
+				testAndApply(x -> IterableUtils.size(x) == 1,
+						collect(filter(testAndApply(Objects::nonNull, clz.getDeclaredClasses(), Arrays::stream, null),
+								x -> x != null && getName(x) != null && getName(x).contains("Config")),
+								Collectors.toList()),
+						x -> IterableUtils.get(x, 0), null))))
+				.setAccessible(true);
+		//
+	}
+
+	private static <T, A, R> R collect(final Stream<T> instance, final Collector<? super T, A, R> collector)
+			throws Throwable {
+		try {
+			return (R) invoke(METHOD_COLLECT, null, instance, collector);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	private static <T> Stream<T> filter(final Stream<T> instance, final Predicate<T> predicate) throws Throwable {
+		try {
+			final Object obj = invoke(METHOD_FILTER, null, instance, predicate);
+			if (obj == null) {
+				return null;
+			} else if (obj instanceof Stream) {
+				return (Stream) obj;
+			}
+			throw new Throwable(getName(getClass(obj)));
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
+	}
+
+	private static <T, R, E extends Exception> R testAndApply(final Predicate<T> predicate, final T value,
+			final FailableFunction<T, R, E> functionTrue, final FailableFunction<T, R, E> functionFalse)
+			throws Throwable {
+		try {
+			return (R) invoke(METHOD_TEST_AND_APPLY, null, predicate, value, functionTrue, functionFalse);
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
 	}
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean test, add;
+		private Boolean test, add, isInfoEnabled;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -145,6 +196,10 @@ public class SshMainTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof org.slf4j.Logger && Objects.equals(name, "isInfoEnabled")) {
+				//
+				return isInfoEnabled;
+				//
 			} // if
 				//
 			throw new Throwable(name);
@@ -163,10 +218,14 @@ public class SshMainTest {
 
 	private File file = null;
 
+	private IH ih = null;
+
 	@BeforeMethod
 	void beforeMethod() {
 		//
 		file = new File("pom.xml");
+		//
+		ih = new IH();
 		//
 	}
 
@@ -250,8 +309,6 @@ public class SshMainTest {
 		String toString, name = null;
 		//
 		Collection<Object> collection = null;
-		//
-		IH ih = null;
 		//
 		Field[] fs = null;
 		//
@@ -546,6 +603,29 @@ public class SshMainTest {
 		} catch (final InvocationTargetException e) {
 			throw e.getTargetException();
 		}
+	}
+
+	@Test
+	void testInfo() throws Exception {
+		//
+		if ((ih = ObjectUtils.getIfNull(ih, IH::new)) != null) {
+			//
+			ih.isInfoEnabled = Boolean.FALSE;
+			//
+		} // if
+			//
+		final Object logger = Reflection.newProxy(Logger.class, ih);
+		//
+		Assert.assertNull(invoke(METHOD_INFO, null, logger, null));
+		//
+		if (ih != null) {
+			//
+			ih.isInfoEnabled = Boolean.TRUE;
+			//
+		} // if
+			//
+		Assert.assertNull(invoke(METHOD_INFO, null, logger, null));
+		//
 	}
 
 }

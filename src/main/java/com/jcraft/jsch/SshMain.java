@@ -74,84 +74,86 @@ public class SshMain {
 		//
 		final Map<String, String> map = toMap(args);
 		//
-		String user = null;
-		//
-		HostAndPort hostAndPort = null;
-		//
-		byte[] password = null;
-		//
-		Iterable<String> commands = null;
-		//
-		File privateKey = null;
-		//
 		if (map != null && !map.isEmpty()) {
 			//
 			if (map.containsKey("file")) {
 				//
 				final File file = testAndApply(Objects::nonNull, map.get("file"), File::new, null);
 				//
-				final Config config = toConfig(file);
-				//
 				info(LOG, "file       ={}", getAbsolutePath(file));
 				//
-				if (config != null) {
-					//
-					user = config.user;
-					//
-					hostAndPort = config.hostAndPort;
-					//
-					password = config.password;
-					//
-					commands = config.commands;
-					//
-					privateKey = config.privateKey;
-					//
-				} // if
-					//
+				final Config config = toConfig(file);
+				//
+				info(LOG, config);
+				//
+				perform(config);
+				//
 			} else {
 				//
-				user = map.get("user");
+				final Config config = new Config();
 				//
-				hostAndPort = toHostAndPort(map.get("host"),
+				config.user = map.get("user");
+				//
+				config.hostAndPort = toHostAndPort(map.get("host"),
 						testAndApply(NumberUtils::isDigits, map.get("port"), Integer::valueOf, null));
 				//
-				password = getBytes(map.get("password"));
+				config.password = getBytes(map.get("password"));
 				//
-				commands = Collections.singleton(map.get("command"));
+				config.commands = Collections.singleton(map.get("command"));
 				//
-				privateKey = testAndApply(Objects::nonNull, map.get("privateKey"), File::new, null);
+				config.privateKey = testAndApply(Objects::nonNull, map.get("privateKey"), File::new, null);
+				//
+				info(LOG, config);
+				//
+				perform(config);
 				//
 			} // if
 				//
+			return;
+			//
 		} else {
 			//
 			final File file = new File("config.xml");
 			//
-			final Config config = toConfig(file);
-			//
 			info(LOG, "file       ={}", getAbsolutePath(file));
 			//
-			if (config != null) {
-				//
-				user = config.user;
-				//
-				hostAndPort = config.hostAndPort;
-				//
-				password = config.password;
-				//
-				commands = config.commands;
-				//
-				privateKey = config.privateKey;
-				//
-			} // if
-				//
+			final Config config = toConfig(file);
+			//
+			info(LOG, config);
+			//
+			perform(toConfig(file));
+			//
 		} // if
 			//
-		info(LOG, "hostAndPort={}", hostAndPort);
+	}
+
+	private static void info(final Logger logger, final Config instance) {
 		//
-		info(LOG, "user       ={}", user);
+		if (logger == null || !logger.isInfoEnabled()) {
+			//
+			return;
+			//
+		} // if
+			//
+		info(logger, "hostAndPort={}", instance != null ? instance.hostAndPort : null);
 		//
-		info(LOG, "privateKey ={}", privateKey);
+		info(logger, "user       ={}", instance != null ? instance.user : null);
+		//
+		info(logger, "privateKey ={}", instance != null ? instance.privateKey : null);
+		//
+	}
+
+	private static void perform(final Config config) throws JSchException, IOException {
+		//
+		final String user = config != null ? config.user : null;
+		//
+		final HostAndPort hostAndPort = config != null ? config.hostAndPort : null;
+		//
+		final byte[] password = config != null ? config.password : null;
+		//
+		final Iterable<String> commands = config != null ? config.commands : null;
+		//
+		final File privateKey = config != null ? config.privateKey : null;
 		//
 		Session session = null;
 		//
@@ -170,11 +172,11 @@ public class SshMain {
 				//
 			} // if
 				//
-			final Properties config = new Properties();
+			final Properties properties = new Properties();
 			//
-			put(config, "StrictHostKeyChecking", "no");
+			put(properties, "StrictHostKeyChecking", "no");
 			//
-			setConfig(session, config);
+			setConfig(session, properties);
 			//
 			connect(session);
 			//
