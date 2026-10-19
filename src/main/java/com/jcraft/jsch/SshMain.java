@@ -119,7 +119,7 @@ public class SshMain {
 			//
 			info(LOG, config);
 			//
-			perform(toConfig(file));
+			perform(config);
 			//
 		} // if
 			//
