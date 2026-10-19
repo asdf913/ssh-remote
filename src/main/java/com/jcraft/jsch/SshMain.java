@@ -109,8 +109,6 @@ public class SshMain {
 				//
 			} // if
 				//
-			return;
-			//
 		} else {
 			//
 			final File file = new File("config.xml");
