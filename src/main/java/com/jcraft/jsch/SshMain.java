@@ -279,28 +279,35 @@ public class SshMain {
 		//
 		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
 			//
+			if ((node = nodeList.item(i)) == null || node.getNodeType() == Node.TEXT_NODE) {
+				//
+				continue;
+				//
+			} // if
+				//
 			(config = new Config()).user = evaluate(
-					xp = ObjectUtils.getIfNull(xp, () -> newXPath(XPathFactory.newInstance())), "/*/user",
+					xp = ObjectUtils.getIfNull(xp, () -> newXPath(XPathFactory.newInstance())), "user",
 					node = nodeList.item(i));
 			//
-			config.hostAndPort = toHostAndPort(evaluate(xp, "/*/host", node),
-					testAndApply(NumberUtils::isDigits, evaluate(xp, "/*/port", node), Integer::valueOf, null));
+			config.hostAndPort = toHostAndPort(evaluate(xp, "host", node),
+					testAndApply(NumberUtils::isDigits, evaluate(xp, "port", node), Integer::valueOf, null));
 			//
-			config.password = getBytes(evaluate(xp, "/*/password", node));
+			config.password = getBytes(evaluate(xp, "password", node));
 			//
-			nodeList = cast(NodeList.class, evaluate(xp, "/*/*/command", node, XPathConstants.NODESET));
+			nodeList = cast(NodeList.class, evaluate(xp, "commands/command", node, XPathConstants.NODESET));
 			//
 			collection = null;
 			//
 			for (int j = 0; nodeList != null && j < nodeList.getLength(); j++) {
 				//
-				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new), getTextContent(nodeList.item(j)));
+				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
+						StringUtils.trim(getTextContent(nodeList.item(j))));
 				//
 			} // for
 				//
 			config.commands = collection;
 			//
-			config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "/*/privateKey", node), File::new, null);
+			config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "privateKey", node), File::new, null);
 			//
 			add(configs = ObjectUtils.getIfNull(configs, ArrayList::new), config);
 			//
