@@ -154,11 +154,8 @@ public class SshMainTest {
 				//
 			} // if
 				//
-			if (proxy instanceof Member && Objects.equals(name, "getName")) {
-				//
-				return null;
-				//
-			} else if (proxy instanceof Iterable && Objects.equals(name, "spliterator")) {
+			if (Boolean.logicalOr(Boolean.logicalAnd(proxy instanceof Member, Objects.equals(name, "getName")),
+					Boolean.logicalAnd(proxy instanceof Iterable, Objects.equals(name, "spliterator")))) {
 				//
 				return null;
 				//
