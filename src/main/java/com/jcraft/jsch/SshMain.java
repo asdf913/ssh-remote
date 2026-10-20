@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Spliterator;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -202,6 +203,8 @@ public class SshMain {
 			//
 			ChannelExec channel = null;
 			//
+			List<String> list = null;
+			//
 			for (int i = 0; i < IterableUtils.size(commands); i++) {
 				//
 				info(LOG, string = IterableUtils.get(commands, i));
@@ -214,8 +217,9 @@ public class SshMain {
 					//
 					connect(channel);
 					//
-					info(LOG, cast(String.class, testAndApply(Objects::nonNull, is,
-							x -> IOUtils.toString(x, StandardCharsets.UTF_8), null)));
+					list = testAndApply(Objects::nonNull, is, x -> IOUtils.readLines(x, StandardCharsets.UTF_8), null);
+					//
+					forEach(list, x -> info(LOG, x));
 					//
 					testAndAccept(StringUtils::isNotBlank,
 							testAndApply(Objects::nonNull, err, x -> IOUtils.toString(x, StandardCharsets.UTF_8), null),
@@ -233,6 +237,12 @@ public class SshMain {
 			//
 		} // try
 			//
+	}
+
+	private static <T> void forEach(final Iterable<T> instance, final Consumer<? super T> action) {
+		if (instance != null && (action != null || Proxy.isProxyClass(getClass(instance)))) {
+			instance.forEach(action);
+		}
 	}
 
 	private static void info(final Logger instance, final String msg) {
