@@ -33,8 +33,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
 import com.google.common.base.Predicates;
@@ -210,11 +209,11 @@ public class SshMainTest {
 				//
 				return isInfoEnabled;
 				//
-			} else if (proxy instanceof Element && Objects.equals(name, "getChildNodes")) {
+			} else if (proxy instanceof Node && contains(Arrays.asList("getChildNodes", "getNodeValue"), name)) {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Document && Objects.equals(name, "getDocumentElement")) {
+			} else if (proxy instanceof NamedNodeMap && Objects.equals(name, "getNamedItem")) {
 				//
 				return null;
 				//
@@ -458,9 +457,11 @@ public class SshMainTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "toConfigs"),
 							Arrays.equals(parameterTypes, new Class<?>[] { File.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getChildNodes"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Element.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "getDocumentElement"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Document.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { Node.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getNodeValue"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Node.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getNamedItem"),
+							Arrays.equals(parameterTypes, new Class<?>[] { NamedNodeMap.class, String.class }))) {
 				//
 				Assert.assertNull(result, toString);
 				//

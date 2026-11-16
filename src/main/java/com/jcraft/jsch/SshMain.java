@@ -46,7 +46,7 @@ import org.apache.commons.lang3.stream.Streams.FailableStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -263,61 +263,60 @@ public class SshMain {
 		}
 	}
 
-	private static NodeList getChildNodes(final Element instance) {
+	private static NodeList getChildNodes(final Node instance) {
 		return instance != null ? instance.getChildNodes() : null;
-	}
-
-	private static Element getDocumentElement(final Document instance) {
-		return instance != null ? instance.getDocumentElement() : null;
 	}
 
 	private static Iterable<Config> toConfigs(final File file)
 			throws ParserConfigurationException, SAXException, IOException, XPathExpressionException {
 		//
-		XPath xp = null;
+		final XPath xp = newXPath(XPathFactory.newInstance());
 		//
 		Collection<Config> configs = null;
 		//
 		Config config = null;
 		//
-		NodeList nodeList = getChildNodes(
-				getDocumentElement(parse(newDocumentBuilder(DocumentBuilderFactory.newInstance()), file)));
+		NodeList nodeList1 = getChildNodes(cast(Node.class, evaluate(xp, "/*",
+				parse(newDocumentBuilder(DocumentBuilderFactory.newInstance()), file), XPathConstants.NODE)));
+		//
+		NodeList nodeList2 = null;
 		//
 		Collection<String> collection = null;
 		//
 		Node node = null;
 		//
-		for (int i = 0; nodeList != null && i < nodeList.getLength(); i++) {
+		NamedNodeMap attribute = null;
+		//
+		for (int i = 0; nodeList1 != null && i < nodeList1.getLength(); i++) {
 			//
-			if ((node = nodeList.item(i)) == null || node.getNodeType() == Node.TEXT_NODE) {
+			if ((node = nodeList1.item(i)) == null || node.getNodeType() != Node.ELEMENT_NODE) {
 				//
 				continue;
 				//
 			} // if
 				//
-			(config = new Config()).user = evaluate(
-					xp = ObjectUtils.getIfNull(xp, () -> newXPath(XPathFactory.newInstance())), "user",
-					node = nodeList.item(i));
+			(config = new Config()).user = getNodeValue(getNamedItem(attribute = node.getAttributes(), "user"));
 			//
-			config.hostAndPort = toHostAndPort(evaluate(xp, "host", node),
-					testAndApply(NumberUtils::isDigits, evaluate(xp, "port", node), Integer::valueOf, null));
+			config.hostAndPort = toHostAndPort(getNodeValue(getNamedItem(attribute, "host")), testAndApply(
+					NumberUtils::isDigits, getNodeValue(getNamedItem(attribute, "port")), Integer::valueOf, null));
 			//
-			config.password = getBytes(evaluate(xp, "password", node));
+			config.password = getBytes(getNodeValue(getNamedItem(attribute, "password")));
 			//
-			nodeList = cast(NodeList.class, evaluate(xp, "commands/command", node, XPathConstants.NODESET));
+			nodeList2 = cast(NodeList.class, evaluate(xp, "commands/command", node, XPathConstants.NODESET));
 			//
 			collection = null;
 			//
-			for (int j = 0; nodeList != null && j < nodeList.getLength(); j++) {
+			for (int j = 0; nodeList2 != null && j < nodeList2.getLength(); j++) {
 				//
 				add(collection = ObjectUtils.getIfNull(collection, ArrayList::new),
-						StringUtils.trim(getTextContent(nodeList.item(j))));
+						StringUtils.trim(getTextContent(nodeList2.item(j))));
 				//
 			} // for
 				//
 			config.commands = collection;
 			//
-			config.privateKey = testAndApply(Objects::nonNull, evaluate(xp, "privateKey", node), File::new, null);
+			config.privateKey = testAndApply(Objects::nonNull, getNodeValue(getNamedItem(attribute, "privateKey")),
+					File::new, null);
 			//
 			add(configs = ObjectUtils.getIfNull(configs, ArrayList::new), config);
 			//
@@ -325,6 +324,14 @@ public class SshMain {
 			//
 		return configs;
 		//
+	}
+
+	private static Node getNamedItem(final NamedNodeMap instance, final String name) {
+		return instance != null ? instance.getNamedItem(name) : null;
+	}
+
+	private static String getNodeValue(final Node instance) {
+		return instance != null ? instance.getNodeValue() : null;
 	}
 
 	private static XPath newXPath(final XPathFactory instance) {
@@ -344,11 +351,6 @@ public class SshMain {
 
 	private static String getTextContent(final Node instnace) {
 		return instnace != null ? instnace.getTextContent() : null;
-	}
-
-	private static String evaluate(final XPath instance, final String expression, final Object item)
-			throws XPathExpressionException {
-		return instance != null && item != null ? instance.evaluate(expression, item) : null;
 	}
 
 	private static Object evaluate(final XPath instance, final String expression, final Object item, final QName qName)
